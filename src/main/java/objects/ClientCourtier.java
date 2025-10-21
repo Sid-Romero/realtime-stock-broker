@@ -9,7 +9,7 @@ import com.rabbitmq.client.DeliverCallback;
 import java.nio.charset.StandardCharsets;
 
 public class ClientCourtier {
-    private final static String QUEUE_NAME = "bourse";
+    private final static String EXCHANGE_NAME = "bourse_direct";
 
     public static void main(String[] argv) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
@@ -17,8 +17,15 @@ public class ClientCourtier {
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
-        channel.queueDeclare(QUEUE_NAME, false, false, false, null);
-        System.out.println(" [*] Waiting for messages...");
+        // echangeur
+        channel.exchangeDeclare(EXCHANGE_NAME, "direct");
+
+        String queueName = channel.queueDeclare().getQueue();
+
+        String routingKey = "AAPL";
+        channel.queueBind(queueName, EXCHANGE_NAME, routingKey);
+
+        System.out.println(" [*] Waiting for " + routingKey + " quotes...");
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
@@ -27,6 +34,6 @@ public class ClientCourtier {
             System.out.println(" [x] Received: " + titre);
         };
 
-        channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> { });
+        channel.basicConsume(queueName, true, deliverCallback, consumerTag -> { });
     }
 }

@@ -6,22 +6,32 @@ import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 
 public class ServiceBourse {
-    private final static String QUEUE_NAME = "bourse";
+    private final static String EXCHANGE_NAME = "bourse_direct";
 
     public static void main(String[] argv) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        factory.setHost("localhost"); 
+        factory.setHost("localhost");
         try (Connection connection = factory.newConnection();
-             Channel channel = connection.createChannel()) {
+            Channel channel = connection.createChannel()) {
 
-            channel.queueDeclare(QUEUE_NAME, false, false, false, null);
+            // échangeur de type direct
+           channel.exchangeDeclare(EXCHANGE_NAME, "direct");
+
+            Gson gson = new Gson();
 
             TitreBoursier apple = new TitreBoursier("AAPL", "Apple Inc.", 182.91, "USD");
-            Gson gson = new Gson();
-            String message = gson.toJson(apple);
+            TitreBoursier google = new TitreBoursier("GOOG", "Alphabet Inc.", 135.12, "USD");
+            TitreBoursier microsoft = new TitreBoursier("MSFT", "Microsoft Corp.", 319.67, "USD");
 
-            channel.basicPublish("", QUEUE_NAME, null, message.getBytes("UTF-8"));
-            System.out.println(" [x] Sent " + message);
+            // clé de routage
+            channel.basicPublish(EXCHANGE_NAME, apple.getCode(), null,
+                    gson.toJson(apple).getBytes("UTF-8"));
+            channel.basicPublish(EXCHANGE_NAME, google.getCode(), null,
+                    gson.toJson(google).getBytes("UTF-8"));
+            channel.basicPublish(EXCHANGE_NAME, microsoft.getCode(), null,
+                    gson.toJson(microsoft).getBytes("UTF-8"));
+
+            System.out.println(" [x] Sent AAPL, GOOG, MSFT");
         }
     }
 }
