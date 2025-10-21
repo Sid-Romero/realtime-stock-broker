@@ -8,31 +8,25 @@ import com.rabbitmq.client.DeliverCallback;
 
 import java.nio.charset.StandardCharsets;
 
-public class Receiver {
-
-    private final static String QUEUE_NAME = "hello";
+public class ClientCourtier {
+    private final static String QUEUE_NAME = "bourse";
 
     public static void main(String[] argv) throws Exception {
         ConnectionFactory factory = new ConnectionFactory();
-        // tente de récupérer l'URL de RabbitMQ
-        if(System.getenv("RABBIT_URL") != null)
-            factory.setUri(System.getenv("RABBIT_URL"));
-        else // sinon on tente en local
-            factory.setHost("localhost");
-
+        factory.setHost("localhost");
         Connection connection = factory.newConnection();
         Channel channel = connection.createChannel();
 
         channel.queueDeclare(QUEUE_NAME, false, false, false, null);
-        System.out.println(" [*] Waiting for messages. To exit press CTRL+C");
+        System.out.println(" [*] Waiting for messages...");
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-            System.out.println(" [x] Received '" + message + "'");
             Gson gson = new Gson();
-            MaClasse monObjet = gson.fromJson(message, MaClasse.class);
-            System.out.println(monObjet);
+            TitreBoursier titre = gson.fromJson(message, TitreBoursier.class);
+            System.out.println(" [x] Received: " + titre);
         };
+
         channel.basicConsume(QUEUE_NAME, true, deliverCallback, consumerTag -> { });
     }
 }
